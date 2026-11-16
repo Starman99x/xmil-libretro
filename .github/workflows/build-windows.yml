@@ -1,0 +1,39 @@
+name: Build Windows x64 core
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch to build"
+        default: "m3u-multidisk"
+        required: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: false
+          install: make mingw-w64-x86_64-gcc
+
+      - name: Build
+        run: make -C libretro platform=win -j4
+
+      - name: Show DLL info
+        run: |
+          ls -la libretro/x1_libretro.dll
+          objdump -p libretro/x1_libretro.dll | grep -E "DLL Name|file format"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: x1_libretro-windows-x64
+          path: libretro/x1_libretro.dll
